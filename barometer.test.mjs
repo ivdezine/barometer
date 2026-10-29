@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -194,5 +194,27 @@ test('the build stamps its identity, and one reading agrees with sysctl and vm_s
     assert.ok(compared > 0, 'at least one listed process was still running for top to read');
   } finally {
     rmSync(out, { recursive: true, force: true });
+  }
+});
+
+// A release's Source code download has no git history, so a build from one was stamped
+// "build 0 (unknown)". git now writes the commit into build.sh as it exports the archive. The
+// export is of HEAD, as a release download would be, and runs ./build.sh the way a reader would.
+test('a build from a source download names the commit it was cut from', { timeout: 600000 }, (t) => {
+  if (spawnSync('which', ['swiftc']).status !== 0) return t.skip('swiftc not installed');
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'barometer-archive-'));
+  try {
+    const src = path.join(tmp, 'src'), out = path.join(tmp, 'out');
+    mkdirSync(src);
+    assert.equal(spawnSync('git', ['archive', '-o', path.join(tmp, 'src.tar'), 'HEAD'], { cwd: here }).status, 0);
+    assert.equal(spawnSync('tar', ['-xf', path.join(tmp, 'src.tar'), '-C', src]).status, 0);
+    const r = spawnSync('./build.sh', { cwd: src, env: { ...process.env, OUT_DIR: out }, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr || String(r.error));
+    const plist = readFileSync(path.join(out, 'Barometer.app', 'Contents', 'Info.plist'), 'utf8');
+    const key = (k) => plist.match(new RegExp(`<key>${k}</key>\\s*<string>([^<]*)</string>`))?.[1];
+    assert.equal(key('GitCommit'), git('rev-parse', '--short=7', 'HEAD'));
+    assert.equal(key('CFBundleVersion'), '0', 'a download has no history to count');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 });

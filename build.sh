@@ -13,6 +13,11 @@ version="1.0.0"
 build="$(git -C "$here" rev-list --count HEAD 2>/dev/null || echo 0)"
 commit="$(git -C "$here" rev-parse --short=7 HEAD 2>/dev/null || echo unknown)"
 if [ -n "$(git -C "$here" status --porcelain -- . 2>/dev/null)" ]; then commit="$commit-dirty"; fi
+# A source download (a release's Source code archive, or git archive) has no history to read. git
+# writes the commit into the next line as it exports this file (.gitattributes marks it
+# export-subst), and the build number, a count of that history, reads 0.
+archived='$Format:%H$'
+case "$archived" in '$Format'*) ;; *) build=0; commit="${archived:0:7}" ;; esac
 
 app="$out/Barometer.app"
 rm -rf "$app"
