@@ -1,0 +1,3 @@
+# git writes the commit into build.sh when it exports an archive, such as a release's Source code
+# download, so a build from one still names the commit it was cut from.
+build.sh export-subst

@@ -39,7 +39,9 @@ open ~/Applications/Barometer.app
 Without `--install` the app lands in `build/` (ignored by git). The build targets the Mac it runs on;
 set `ARCH=x86_64` or `ARCH=arm64` to build for the other one. It stamps the release identity,
 `Version 1.0.0 · build <commit count> (<short commit>)`, shown at the foot of the panel. A build
-from uncommitted changes carries `-dirty` after the commit.
+from uncommitted changes carries `-dirty` after the commit. A build from a source download, such
+as a release's Source code archive, has no history to count, so it reads build 0 with the commit
+it was cut from.
 
 The app is signed ad hoc on your own Mac, so a build from source opens without a Gatekeeper prompt.
 
@@ -156,10 +158,12 @@ image, and that Open at login loads what it writes. For the top memory list it c
 are physical footprint grouped by responsible app, that Quit is a graceful two-click quit offered
 only to apps outside macOS itself with nothing ever killed, and that processes are read only while
 the panel is open. It checks that a click outside the panel closes it, and that the build targets
-the Mac it runs on. It then compiles the real app twice into temp folders: an Intel build, run
-under Rosetta where Rosetta is installed, and a native build whose stamped identity it checks
+the Mac it runs on. It then compiles the real app three times into temp folders: an Intel build,
+run under Rosetta where Rosetta is installed; a native build whose stamped identity it checks
 before taking one reading and holding it against `sysctl` and `vm_stat`, and each listed app's
-largest process against `top`'s MEM column. The build tests skip where `swiftc` is missing.
+largest process against `top`'s MEM column; and a build from a `git archive` export of the
+current commit, as a release download would be, which must still name that commit. The build
+tests skip where `swiftc` is missing.
 
 ## License
 
